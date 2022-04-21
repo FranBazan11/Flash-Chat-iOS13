@@ -1,8 +1,8 @@
 ![App Brewery Banner](Documentation/AppBreweryBanner.png)
 
-# Flash-Chat
+# Flash-Chat⚡️
 
-<img width="510" alt="Flash-Chat-Storyboard" src="https://user-images.githubusercontent.com/63799020/164351996-9a36eb32-6e69-4741-b511-9c2bd599cf0b.png">
+<img width="750" alt="Flash-Chat-Storyboard" src="https://user-images.githubusercontent.com/63799020/164351996-9a36eb32-6e69-4741-b511-9c2bd599cf0b.png">
 
 ## Our Goal
 
