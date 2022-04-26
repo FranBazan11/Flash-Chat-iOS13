@@ -11,20 +11,24 @@ import Firebase
 
 class ChatViewController: UIViewController {
     
-    let db = Firestore.firestore()
+    // MARK: - Private Properties
+    private let db = Firestore.firestore()
+    private var messages: [Message] = []
     
-    var messages: [Message] = []
     // MARK: - IBOutlet
     @IBOutlet weak var tableView: UITableView!
     @IBOutlet weak var messageTextfield: UITextField!
     
-    
     // MARK: - IBAction
     @IBAction func sendPressed(_ sender: UIButton) {
         if let messageBody = messageTextfield.text , let messageSender = Auth.auth().currentUser?.email {
+            /// Clean text field
+            self.messageTextfield.text = ""
+            
             db.collection(Constants.FStore.collectionName)
                 .addDocument(data:[Constants.FStore.senderField: messageSender,
-                                   Constants.FStore.bodyField: messageBody]) { (error) in
+                                   Constants.FStore.bodyField: messageBody,
+                                   Constants.FStore.dateField: Date().timeIntervalSince1970]) { (error) in
                     if let safeError = error {
                         print("There was an issue saving data to Firestore, \(safeError)")
                     } else {
@@ -44,36 +48,41 @@ class ChatViewController: UIViewController {
         }
     }
     
+    // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
         title = Constants.appName
         navigationItem.hidesBackButton = true
+        messageTextfield.delegate = self
         configureTableView()
         loadMessages()
     }
     
     // MARK: - Private Methods
     private func loadMessages() {
-        db.collection(Constants.FStore.collectionName).getDocuments { (querySnapshot, error) in
-            if let safeError = error {
-                print("There was an issue retrieving data from Firestore \(safeError)")
-            } else {
-                if let snapshotDocuments = querySnapshot?.documents {
-                    for document in snapshotDocuments {
-                        let data = document.data()
-                        if let messageSender = data[Constants.FStore.senderField] as? String,
-                           let messageBody = data[Constants.FStore.bodyField] as? String  {
-                            let newMessage = Message(sender: messageSender, body: messageBody)
-                            self.messages.append(newMessage)
-                            
-                            DispatchQueue.main.async {
-                                self.tableView.reloadData()
+        db.collection(Constants.FStore.collectionName)
+            .order(by: Constants.FStore.dateField)
+            .addSnapshotListener { (querySnapshot, error) in
+                self.messages = []
+                if let safeError = error {
+                    print("There was an issue retrieving data from Firestore \(safeError)")
+                } else {
+                    if let snapshotDocuments = querySnapshot?.documents {
+                        for document in snapshotDocuments {
+                            let data = document.data()
+                            if let messageSender = data[Constants.FStore.senderField] as? String,
+                               let messageBody = data[Constants.FStore.bodyField] as? String {
+                                let newMessage = Message(sender: messageSender, body: messageBody)
+                                self.messages.append(newMessage)
+                                
+                                DispatchQueue.main.async {
+                                    self.tableView.reloadData()
+                                }
                             }
                         }
                     }
                 }
             }
-        }
     }
     
     private func configureTableView() {
@@ -94,5 +103,13 @@ extension ChatViewController : UITableViewDataSource {
         let cell = tableView.dequeueReusableCell(withIdentifier: Constants.cellIdentifier, for: indexPath) as! MessageCell
         cell.label.text = messages[indexPath.row].body
         return cell
+    }
+}
+// MARK: - UITextFieldDelegate
+extension ChatViewController : UITextFieldDelegate {
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        messageTextfield.endEditing(true)
+        messageTextfield.text = ""
+        return true
     }
 }
