@@ -21,7 +21,37 @@ class ChatViewController: UIViewController {
     
     // MARK: - IBAction
     @IBAction func sendPressed(_ sender: UIButton) {
-        if let messageBody = messageTextfield.text , let messageSender = Auth.auth().currentUser?.email {
+        sendMessage()
+    }
+    
+    @IBAction func logOutPressed(_ sender: UIBarButtonItem) {
+        let firebaseAuth = Auth.auth()
+        do {
+            try firebaseAuth.signOut()
+            navigationController?.popToRootViewController(animated: true)
+        } catch let signOutError as NSError {
+            print("Error signing out: %@", signOutError)
+        }
+    }
+    
+    // MARK: - Lifecycle
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        navigationController?.isNavigationBarHidden = false
+    }
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        title = Constants.appName
+        navigationItem.hidesBackButton = true
+        messageTextfield.delegate = self
+        configureTableView()
+        loadMessages()
+    }
+    
+    // MARK: - Private Methods
+    private func sendMessage() {
+        if let messageBody = messageTextfield.text , !messageBody.isEmpty, let messageSender = Auth.auth().currentUser?.email {
             /// Clean text field
             self.messageTextfield.text = ""
             
@@ -37,28 +67,6 @@ class ChatViewController: UIViewController {
                 }
         }
     }
-    
-    @IBAction func logOutPressed(_ sender: UIBarButtonItem) {
-        let firebaseAuth = Auth.auth()
-        do {
-            try firebaseAuth.signOut()
-            navigationController?.popToRootViewController(animated: true)
-        } catch let signOutError as NSError {
-            print("Error signing out: %@", signOutError)
-        }
-    }
-    
-    // MARK: - Lifecycle
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        title = Constants.appName
-        navigationItem.hidesBackButton = true
-        messageTextfield.delegate = self
-        configureTableView()
-        loadMessages()
-    }
-    
-    // MARK: - Private Methods
     private func loadMessages() {
         db.collection(Constants.FStore.collectionName)
             .order(by: Constants.FStore.dateField)
@@ -77,6 +85,8 @@ class ChatViewController: UIViewController {
                                 
                                 DispatchQueue.main.async {
                                     self.tableView.reloadData()
+                                    let indexPath = IndexPath(row: self.messages.count - 1, section: 0)
+                                    self.tableView.scrollToRow(at: indexPath, at: .top, animated: true)
                                 }
                             }
                         }
@@ -100,16 +110,36 @@ extension ChatViewController : UITableViewDataSource {
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        
+        let message = messages[indexPath.row]
+        
         let cell = tableView.dequeueReusableCell(withIdentifier: Constants.cellIdentifier, for: indexPath) as! MessageCell
-        cell.label.text = messages[indexPath.row].body
+        cell.label.text = message.body
+        
+        if message.sender == Auth.auth().currentUser?.email {
+            cell.leftImageView.isHidden = true
+            cell.rightImageView.isHidden = false
+            cell.messageBubble.backgroundColor = UIColor(named: Constants.BrandColors.lightPurple)
+            cell.label.textColor = UIColor(named: Constants.BrandColors.purple)
+        } else {
+            cell.leftImageView.isHidden = false
+            cell.rightImageView.isHidden = true
+            cell.messageBubble.backgroundColor = UIColor(named: Constants.BrandColors.purple)
+            cell.label.textColor = UIColor(named: Constants.BrandColors.lightPurple)
+        }
         return cell
+
     }
 }
 // MARK: - UITextFieldDelegate
 extension ChatViewController : UITextFieldDelegate {
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-        messageTextfield.endEditing(true)
-        messageTextfield.text = ""
+        sendMessage()
         return true
+    }
+    
+    func textFieldDidBeginEditing(_ textField: UITextField) {
+        let indexPath = IndexPath(row: self.messages.count - 1, section: 0)
+        self.tableView.scrollToRow(at: indexPath, at: .top, animated: true)
     }
 }

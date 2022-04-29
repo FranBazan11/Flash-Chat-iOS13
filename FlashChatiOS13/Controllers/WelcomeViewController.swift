@@ -9,8 +9,16 @@
 import UIKit
 
 class WelcomeViewController: UIViewController {
-
+    
+    // MARK: - IBOutlet
     @IBOutlet weak var titleLabel: UILabel!
+    
+    // MARK: - Lifecycle
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        navigationController?.isNavigationBarHidden = true
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
