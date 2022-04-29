@@ -6,6 +6,6 @@ target 'FlashChatiOS13' do
   # Pods for FlashChatiOS13
   pod 'Firebase/Auth'
   pod 'Firebase/Firestore'
-#  pod 'IQKeyboardManagerSwift'
-
+  pod 'IQKeyboardManagerSwift'
+  
 end
